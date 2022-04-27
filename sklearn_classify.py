@@ -1,13 +1,3 @@
-
-# from . import get_project_root
-
-#from src import get_project_root
-from utils.utils import get_project_root
-
-
-PROJECT_ROOT = get_project_root()
-
-
 # sklearn_classify
 
 
@@ -71,9 +61,10 @@ print(grid_search.best_params_)
 print(f"Internal CV score: {grid_search.best_score_:.3f}")
 
 
+dft['text'] = dft['text'].apply(clean)
+predictions = grid_search.predict(dft['text'])
 
-def main():
-    breakpoint()
 
-if __name__ == '__main__':
-   main()
+submission_df = {"id":dft['id'], "target":predictions}
+submission = pd.DataFrame(submission_df)
+submission.to_csv('submission.csv',index=False)
