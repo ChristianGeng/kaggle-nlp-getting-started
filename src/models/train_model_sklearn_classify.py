@@ -31,23 +31,23 @@ log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=log_fmt)
 
 
+def clean(text):
+    res = re.sub(
+        r"http(s)?:\/\/([\w\.\/])*", " ", text
+    )  # clean url:  http://x.x.x.x/xxx
+    res = re.sub("[0-9]+", "", res)  # clean numbers
+    res = re.sub(
+        r'[!"#$%&()*+,-./:;=?@\\^_`"~\t\n\<\>\[\]\{\}]', " ", res
+    )  # clean special chars
+    res = re.sub(r"  +", " ", res)  #  multiple blank chars to a single blank char 。
+    return res.strip()
+
 
 def main():
 
     # sklearn_classify
     df = get_train_df()
     dft = get_test_df()
-
-    def clean(text):
-        res = re.sub(
-            r"http(s)?:\/\/([\w\.\/])*", " ", text
-        )  # clean url:  http://x.x.x.x/xxx
-        res = re.sub("[0-9]+", "", res)  # clean numbers
-        res = re.sub(
-            r'[!"#$%&()*+,-./:;=?@\\^_`"~\t\n\<\>\[\]\{\}]', " ", res
-        )  # clean special chars
-        res = re.sub(r"  +", " ", res)  #  multiple blank chars to a single blank char 。
-        return res.strip()
 
     print("cleaning data")
     df["text"] = df["text"].apply(clean)
@@ -71,13 +71,12 @@ def main():
         ["mean_test_score", "std_test_score", "param_clf__max_iter", "param_clf__tol"]
     ].head(5)
 
-
     print("Best params:")
     print(grid_search.best_params_)
     print(f"Internal CV score: {grid_search.best_score_:.3f}")
 
-    audeer.mkdir(os.path.join(get_project_root(), 'models'))
-    model_dump_fn = os.path.join(get_project_root(), 'models', MODEL_NAME + '.pkl')
+    audeer.mkdir(os.path.join(get_project_root(), "models"))
+    model_dump_fn = os.path.join(get_project_root(), "models", MODEL_NAME + ".pkl")
     print(f"Dumping Model to {model_dump_fn}.")
     joblib.dump(grid_search, model_dump_fn)
     print(f"done.")
@@ -88,6 +87,7 @@ def main():
     # submission_df = {"id":dft['id'], "target":predictions}
     # submission = pd.DataFrame(submission_df)
     # submission.to_csv('submission.csv',index=False)
+
 
 if __name__ == "__main__":
     main()
