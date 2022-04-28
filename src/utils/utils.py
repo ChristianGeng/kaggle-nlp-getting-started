@@ -14,3 +14,6 @@ def get_train_df() -> Path:
 
 def get_test_df() -> Path:
     return pd.read_csv(os.path.join(get_project_root(), "data", "raw", "test.csv"))
+
+def get_samplesubmission_df() -> Path:
+    return pd.read_csv(os.path.join(get_project_root(), "data", "raw", "sample_submission.csv"))
