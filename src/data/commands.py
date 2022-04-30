@@ -46,3 +46,9 @@ def nltk_stopwords():
     """download the nltk stopwords"""
 
     nltk.download("stopwords")
+
+@click.command()
+def nltk_twitter_samples():
+    """download the nltk twitter samples"""
+
+    nltk.download('twitter_samples')
