@@ -164,11 +164,11 @@ reg = linear_model.LogisticRegression(fit_intercept=False).fit(X_train, df["targ
 # 9
 
 y_test = reg.predict(X_test)
+
 # submission = pd.DataFrame()
-df_submission = pd.DataFrame(y_test, index=dft.index, columns=['target'])
-# df_submission.index.name  = 'id'
+df_submission = pd.DataFrame(y_test, index=dft['id'], columns=['target'])
+df_submission.index.name  = 'id'
 #df_submission.columns = ['id', 'target']
 # df_submission.to_csv("submission.csv", index=True, sep=',')
 write_submission_csv(df_submission, MODEL_NAME, write_index=True)
 # x = extract_features(tweet,freqs)
-breakpoint()
