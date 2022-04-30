@@ -1,3 +1,6 @@
+"""see https://www.kaggle.com/code/vaishnavibv/disaster-tweet-classification-logistic-regression
+"""
+
 import re
 import string
 
@@ -164,7 +167,6 @@ reg = linear_model.LogisticRegression(fit_intercept=False).fit(X_train, df["targ
 # 9
 
 y_test = reg.predict(X_test)
-
 # submission = pd.DataFrame()
 df_submission = pd.DataFrame(y_test, index=dft['id'], columns=['target'])
 df_submission.index.name  = 'id'
