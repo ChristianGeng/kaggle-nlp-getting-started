@@ -17,9 +17,8 @@ def df_with_durations():
     cleaned data ready to be analyzed (saved in ../processed).
     """
 
-    dir_name = 'birdclef-2022-df-train-with-durations'
-    ofname = 'df-with-durations.csv'
-
+    dir_name = "birdclef-2022-df-train-with-durations"
+    ofname = "df-with-durations.csv"
 
     logger = logging.getLogger(__name__)
     logger.info("making final data set from raw data")

@@ -5,7 +5,6 @@ import os
 import numpy as np
 
 
-
 from torch.utils.data import TensorDataset, random_split
 from torch.utils.data import DataLoader, Dataset
 
@@ -19,14 +18,16 @@ import time
 import re
 
 import random
+
 # Set the seed value all over the place to make this reproducible.
 def seed_everything(seed=42):
     random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
+
 
 seed_everything(seed=42)
 
@@ -37,83 +38,91 @@ df = get_train_df()
 test_df = get_test_df()
 
 
-modelname = 'bert-base-uncased'
-batchsize =32
+modelname = "bert-base-uncased"
+batchsize = 32
 tokenizer = AutoTokenizer.from_pretrained(modelname)
 
 
 def clean(text):
     text = text.lower()
-    text=text.replace(r'&amp;?',r'and')
-    text=text.replace(r'&lt;',r'<')
-    text=text.replace(r'&gt;',r'>')
+    text = text.replace(r"&amp;?", r"and")
+    text = text.replace(r"&lt;", r"<")
+    text = text.replace(r"&gt;", r">")
 
-    res = re.sub(r'http(s)?:\/\/([\w\.\/])*' ,' ',text) # clean url http://x.x.x.x/xxx
-    res = re.sub('[0-9]+', '', res) #  clean numbers
-    res = re.sub(r'[!"#$%&()*+,-./:;=?@\\^_`"~\t\n\<\>\[\]\{\}]',' ',res) # clean special chars。
-    res = re.sub(r'  +',' ',res) # convert multiple continues blank char to one blank char。
+    res = re.sub(r"http(s)?:\/\/([\w\.\/])*", " ", text)  # clean url http://x.x.x.x/xxx
+    res = re.sub("[0-9]+", "", res)  #  clean numbers
+    res = re.sub(
+        r'[!"#$%&()*+,-./:;=?@\\^_`"~\t\n\<\>\[\]\{\}]', " ", res
+    )  # clean special chars。
+    res = re.sub(
+        r"  +", " ", res
+    )  # convert multiple continues blank char to one blank char。
     return res.strip()
 
-df['text'] = df['text'].apply(clean)
-test_df['text'] =test_df['text'].apply(clean)
+
+df["text"] = df["text"].apply(clean)
+test_df["text"] = test_df["text"].apply(clean)
 
 df = df.sample(frac=1.0)
-train_df = df[:7000] # 7000
-valid_df = df[7000:] # [7000:]
-print(train_df.shape,valid_df.shape)
+train_df = df[:7000]  # 7000
+valid_df = df[7000:]  # [7000:]
+print(train_df.shape, valid_df.shape)
 
 
 def prepare_input(text, keyword):
     keystr = str(keyword)
-    inputs = tokenizer(text, #keystr,
-                           add_special_tokens=True,
-                           max_length= maxlen,
-                           padding="max_length",
-                           return_offsets_mapping=False)
+    inputs = tokenizer(
+        text,  # keystr,
+        add_special_tokens=True,
+        max_length=maxlen,
+        padding="max_length",
+        return_offsets_mapping=False,
+    )
     for k, v in inputs.items():
         inputs[k] = torch.tensor(v, dtype=torch.long)
     return inputs
 
 
 class TrainDataset(Dataset):
-    def __init__(self,vdf):
-        self.target = vdf['target'].values
-        self.text = vdf['text'].values
-        self.keyword = vdf['keyword'].values
-        self.location = vdf['location'].values
+    def __init__(self, vdf):
+        self.target = vdf["target"].values
+        self.text = vdf["text"].values
+        self.keyword = vdf["keyword"].values
+        self.location = vdf["location"].values
 
     def __len__(self):
         return len(self.text)
 
     def __getitem__(self, item):
-        inputs = prepare_input(
-                               self.text[item],
-                               self.keyword[item])
+        inputs = prepare_input(self.text[item], self.keyword[item])
         label = torch.tensor(self.target[item], dtype=torch.long)
 
-        return (inputs['input_ids'],inputs['token_type_ids'],inputs['attention_mask'] ), label
+        return (
+            inputs["input_ids"],
+            inputs["token_type_ids"],
+            inputs["attention_mask"],
+        ), label
+
 
 # Combine the training inputs into a TensorDataset.
 # dataset = TensorDataset(input_ids, attention_masks, labels)
 train_ds = TrainDataset(train_df)
 valid_ds = TrainDataset(valid_df)
 
-train_loader = DataLoader(train_ds,
-                              batch_size=batchsize,
-                              shuffle=True,
-                              pin_memory=True, drop_last=False)
-valid_loader = DataLoader(valid_ds,
-                              batch_size=batchsize,
-                              shuffle=True,
-                              pin_memory=True, drop_last=False)
+train_loader = DataLoader(
+    train_ds, batch_size=batchsize, shuffle=True, pin_memory=True, drop_last=False
+)
+valid_loader = DataLoader(
+    valid_ds, batch_size=batchsize, shuffle=True, pin_memory=True, drop_last=False
+)
 
 
 model = BertForSequenceClassification.from_pretrained(
-    "bert-base-uncased", # Use the 12-layer BERT model, with an uncased vocab.
-    num_labels = 2, # The number of output labels--2 for binary classification.
-                    # You can increase this for multi-class tasks.
-    output_attentions = False, # Whether the model returns attentions weights.
-    output_hidden_states = False, # Whether the model returns all hidden-states.
+    "bert-base-uncased",  # Use the 12-layer BERT model, with an uncased vocab.
+    num_labels=2,  # The number of output labels--2 for binary classification.
+    # You can increase this for multi-class tasks.
+    output_attentions=False,  # Whether the model returns attentions weights.
+    output_hidden_states=False,  # Whether the model returns all hidden-states.
 )
 
 # Tell pytorch to run this model on the GPU.
@@ -122,22 +131,26 @@ model.cuda()
 
 # Note: AdamW is a class from the huggingface library (as opposed to pytorch)
 # I believe the 'W' stands for 'Weight Decay fix"
-optimizer = AdamW(model.parameters(),
-                  lr = 6e-6, # args.learning_rate - default is 5e-5, our notebook had 2e-5
-                  eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
-                )
+optimizer = AdamW(
+    model.parameters(),
+    lr=6e-6,  # args.learning_rate - default is 5e-5, our notebook had 2e-5
+    eps=1e-8,  # args.adam_epsilon  - default is 1e-8.
+)
 
 from transformers import get_linear_schedule_with_warmup
-epochs = 5 # 4
+
+epochs = 5  # 4
 
 # Total number of training steps is [number of batches] x [number of epochs].
 # (Note that this is not the same as the number of training samples).
 total_steps = len(train_loader) * epochs
 
 # Create the learning rate scheduler.
-scheduler = get_linear_schedule_with_warmup(optimizer,
-                                            num_warmup_steps = 0, # Default value in run_glue.py
-                                            num_training_steps = total_steps)
+scheduler = get_linear_schedule_with_warmup(
+    optimizer,
+    num_warmup_steps=0,  # Default value in run_glue.py
+    num_training_steps=total_steps,
+)
 
 # Function to calculate the accuracy of our predictions vs labels
 def flat_accuracy(preds, labels):
@@ -149,17 +162,19 @@ def flat_accuracy(preds, labels):
 import time
 import datetime
 
+
 def format_time(elapsed):
-    '''
+    """
     Takes a time in seconds and returns a string hh:mm:ss
-    '''
+    """
     # Round to the nearest second.
     elapsed_rounded = int(round((elapsed)))
 
     # Format as hh:mm:ss
     return str(datetime.timedelta(seconds=elapsed_rounded))
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # We'll store a number of quantities such as training and validation loss,
@@ -168,6 +183,7 @@ training_stats = []
 
 # Measure the total training time for the whole run.
 total_t0 = time.time()
+
 
 def plot_sentence_embeddings_length(text_list, tokenizer):
     tokenized_texts = list(map(lambda t: tokenizer.tokenize(t), text_list))
@@ -178,10 +194,10 @@ def plot_sentence_embeddings_length(text_list, tokenizer):
     # ax.set_ylabel("Number of Comments");
     return max(tokenized_texts_len)
 
-maxlen1 = plot_sentence_embeddings_length(df['text'].values, tokenizer)
-maxlen2 = plot_sentence_embeddings_length(test_df['text'].values, tokenizer)
-maxlen = max(maxlen1,maxlen2)
 
+maxlen1 = plot_sentence_embeddings_length(df["text"].values, tokenizer)
+maxlen2 = plot_sentence_embeddings_length(test_df["text"].values, tokenizer)
+maxlen = max(maxlen1, maxlen2)
 
 
 # For each epoch...
@@ -194,8 +210,8 @@ for epoch_i in range(0, epochs):
     # Perform one full pass over the training set.
 
     print("")
-    print('======== Epoch {:} / {:} ========'.format(epoch_i + 1, epochs))
-    print('Training...')
+    print("======== Epoch {:} / {:} ========".format(epoch_i + 1, epochs))
+    print("Training...")
 
     # Measure how long the training epoch takes.
     t0 = time.time()
@@ -218,7 +234,11 @@ for epoch_i in range(0, epochs):
             elapsed = format_time(time.time() - t0)
 
             # Report progress.
-            print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_loader), elapsed))
+            print(
+                "  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.".format(
+                    step, len(train_loader), elapsed
+                )
+            )
 
         # Unpack this training batch from our dataloader.
         #
@@ -229,7 +249,7 @@ for epoch_i in range(0, epochs):
         #   [0]: input ids
         #   [1]: attention masks
         #   [2]: labels
-        b_input_ids = inputs[0] .to(device)
+        b_input_ids = inputs[0].to(device)
         b_input_mask = inputs[1].to(device)
         b_labels = labels.to(device)
 
@@ -247,12 +267,14 @@ for epoch_i in range(0, epochs):
         # the loss (because we provided labels) and the "logits"--the model
         # outputs prior to activation.
 
-        output= model(b_input_ids,
-                             token_type_ids=None,
-                             attention_mask=b_input_mask,
-                             labels=b_labels)
+        output = model(
+            b_input_ids,
+            token_type_ids=None,
+            attention_mask=b_input_mask,
+            labels=b_labels,
+        )
         loss = output[0]
-        logits =output[1]
+        logits = output[1]
         # Accumulate the training loss over all of the batches so that we can
         # calculate the average loss at the end. `loss` is a Tensor containing a
         # single value; the `.item()` function just returns the Python value
@@ -305,14 +327,14 @@ for epoch_i in range(0, epochs):
     nb_eval_steps = 0
 
     # Evaluate data for one epoch
-    for batch,(inputs, labels) in enumerate(valid_loader):
+    for batch, (inputs, labels) in enumerate(valid_loader):
 
         # Unpack this training batch from our dataloader.
         #
         # As we unpack the batch, we'll also copy each tensor to the GPU using
         # the `to` method.
         #
-        b_input_ids = inputs[0] .to(device)
+        b_input_ids = inputs[0].to(device)
         b_input_mask = inputs[2].to(device)
         b_labels = labels.to(device)
 
@@ -327,25 +349,25 @@ for epoch_i in range(0, epochs):
             # https://huggingface.co/transformers/v2.2.0/model_doc/bert.html#transformers.BertForSequenceClassification
             # Get the "logits" output by the model. The "logits" are the output
             # values prior to applying an activation function like the softmax.
-            output = model(b_input_ids,
-                                   token_type_ids=None,
-                                   attention_mask=b_input_mask,
-                                   labels=b_labels)
+            output = model(
+                b_input_ids,
+                token_type_ids=None,
+                attention_mask=b_input_mask,
+                labels=b_labels,
+            )
             loss = output[0]
-            logits =output[1]
-
+            logits = output[1]
 
         # Accumulate the validation loss.
         total_eval_loss += loss.item()
 
         # Move logits and labels to CPU
         logits = logits.detach().cpu().numpy()
-        label_ids = b_labels.to('cpu').numpy()
+        label_ids = b_labels.to("cpu").numpy()
 
         # Calculate the accuracy for this batch of test sentences, and
         # accumulate it over all batches.
         total_eval_accuracy += flat_accuracy(logits, label_ids)
-
 
     # Report the final accuracy for this validation run.
     avg_val_accuracy = total_eval_accuracy / len(valid_loader)
@@ -363,11 +385,11 @@ for epoch_i in range(0, epochs):
     # Record all statistics from this epoch.
     training_stats.append(
         {
-            'epoch': epoch_i + 1,
-            'Training Loss': avg_train_loss,
-            'Valid. Loss': avg_val_loss,
-            'Valid. Accur.': avg_val_accuracy,
-            'Training Time': training_time,
-            'Validation Time': validation_time
+            "epoch": epoch_i + 1,
+            "Training Loss": avg_train_loss,
+            "Valid. Loss": avg_val_loss,
+            "Valid. Accur.": avg_val_accuracy,
+            "Training Time": training_time,
+            "Validation Time": validation_time,
         }
     )

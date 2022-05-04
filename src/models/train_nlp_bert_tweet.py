@@ -5,7 +5,12 @@
 import os
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-from utils.utils import get_project_root, get_samplesubmission_df, get_test_df, get_train_df
+from utils.utils import (
+    get_project_root,
+    get_samplesubmission_df,
+    get_test_df,
+    get_train_df,
+)
 
 # pip install datasets
 from datasets import Dataset
@@ -166,26 +171,29 @@ df_submission["input_ids"] = df_submission["text"].apply(
 )
 df_submission.head()
 
-df_submission=df_submission[['input_ids']]
+df_submission = df_submission[["input_ids"]]
 
 output_ds = Dataset.from_pandas(df_submission)
 output_ds
 
-outputs=trainer.predict(output_ds)
+outputs = trainer.predict(output_ds)
 outputs.predictions.argmax(1)
 
 from utils.utils import get_samplesubmission_df
-#sub = pd.read_csv('../input/nlp-getting-started/sample_submission.csv')
+
+# sub = pd.read_csv('../input/nlp-getting-started/sample_submission.csv')
 sub = get_samplesubmission_df()
-#sub.head()
+# sub.head()
 
 # sub = pd.read_csv('../input/nlp-getting-started/sample_submission.csv')
 sub.head()
-sub['target'] = outputs.predictions.argmax(1)
+sub["target"] = outputs.predictions.argmax(1)
 sub.head()
 import os
+
 model_name = "nlp_bert_tweet"
-submission_fname = os.path.join(get_project_roots(), "submissions", 'submission_' +
-                                model_name + '.csv')
+submission_fname = os.path.join(
+    get_project_roots(), "submissions", "submission_" + model_name + ".csv"
+)
 
 sub.to_csv(submission_fname, index=False)

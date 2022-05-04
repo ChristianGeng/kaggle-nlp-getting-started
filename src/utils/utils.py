@@ -29,9 +29,7 @@ def get_samplesubmission_df() -> Path:
 
 
 def write_submission_csv(submission, model_name, write_index=False):
-    """Write a submission to the submission directory
-
-    """
+    """Write a submission to the submission directory"""
 
     submission_fname = os.path.join(
         get_project_root(), "submissions", "submission_" + model_name + ".csv"
